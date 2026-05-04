@@ -30,7 +30,7 @@ export default function App() {
   const [customSoundUrl, setCustomSoundUrl] = useState(settings.customSoundUrl ?? '')
   const [favorites, setFavorites] = useState(loadFavorites)
 
-  const { stats, loading: statsLoading, fetchStats, saveSession } = useStats(user?.id)
+  const { stats, sessions, loading: statsLoading, fetchStats, saveSession, clearSessions } = useStats(user?.id)
 
   const handleSessionComplete = useCallback(async (actualSeconds: number) => {
     const config = getMethodConfig(method)
@@ -163,7 +163,17 @@ export default function App() {
         </div>
 
         <div className="w-full">
-          <StatsPanel stats={stats} loading={statsLoading} />
+          <StatsPanel
+            stats={stats}
+            sessions={sessions}
+            loading={statsLoading}
+            onClear={async () => {
+              const err = await clearSessions()
+              if (err) setToast(`Could not clear: ${err}`)
+              else setToast('All sessions cleared')
+              return err
+            }}
+          />
         </div>
       </main>
 
