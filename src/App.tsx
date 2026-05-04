@@ -22,7 +22,7 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [, forceUpdate] = useState(0)
 
-  const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth()
+  const { user, loading: authLoading, sendMagicLink, signOut } = useAuth()
 
   const settings = loadSettings()
   const [sound, setSound] = useState<AmbientSound>(settings.sound as AmbientSound || 'none')
@@ -95,7 +95,7 @@ export default function App() {
         <AuthButton
           user={user}
           loading={authLoading}
-          onSignIn={signInWithGoogle}
+          onSendMagicLink={sendMagicLink}
           onSignOut={signOut}
         />
         <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
