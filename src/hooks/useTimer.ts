@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { FocusMethod, TimerPhase } from '../lib/types'
 import { getMethodConfig } from '../lib/storage'
+import { playChime } from '../lib/chime'
 
 interface TimerState {
   phase: TimerPhase
@@ -10,7 +11,11 @@ interface TimerState {
   sessionsCompleted: number
 }
 
-export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number) => void) {
+export function useTimer(
+  method: FocusMethod,
+  onComplete: (actualSeconds: number) => void,
+  autoStartBreak = false,
+) {
   const [state, setState] = useState<TimerState>({
     phase: 'idle',
     elapsed: 0,
@@ -27,9 +32,11 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
   const totalSecondsRef = useRef(0)
   const onCompleteRef = useRef(onComplete)
   const methodRef = useRef(method)
+  const autoStartRef = useRef(autoStartBreak)
 
   onCompleteRef.current = onComplete
   methodRef.current = method
+  autoStartRef.current = autoStartBreak
 
   const handlePhaseComplete = useCallback(() => {
     const cfg = getMethodConfig(methodRef.current)
@@ -38,6 +45,7 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
         ? Math.floor((pausedElapsedRef.current + (Date.now() - startTimeRef.current)) / 1000)
         : cfg.focusMinutes * 60
       onCompleteRef.current(actualSeconds)
+      playChime('focus')
 
       if (cfg.hasBreak) {
         const newSessions = sessionsRef.current + 1
@@ -55,10 +63,12 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
           phase: 'break',
           elapsed: 0,
           totalSeconds: breakSeconds,
-          isRunning: true,
+          isRunning: autoStartRef.current,
           sessionsCompleted: newSessions,
         })
-        rafRef.current = requestAnimationFrame(tick)
+        if (autoStartRef.current) {
+          rafRef.current = requestAnimationFrame(tick)
+        }
         sendNotification('Focus complete! Time for a break.')
       } else {
         sessionsRef.current += 1
@@ -73,6 +83,7 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
         sendNotification('Session complete!')
       }
     } else if (phaseRef.current === 'break') {
+      playChime('break')
       phaseRef.current = 'idle'
       setState(prev => ({ ...prev, phase: 'idle', isRunning: false, elapsed: 0 }))
       sendNotification('Break over! Ready for another session?')
@@ -147,6 +158,7 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
         (pausedElapsedRef.current + (Date.now() - startTimeRef.current)) / 1000
       )
       onCompleteRef.current(actualSeconds)
+      playChime('focus')
       sessionsRef.current += 1
       phaseRef.current = 'idle'
       setState(prev => ({
@@ -176,12 +188,17 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
     ? state.elapsed
     : Math.max(0, state.totalSeconds - state.elapsed)
 
+  const progress = (!config.isCountUp && state.totalSeconds > 0)
+    ? state.elapsed / state.totalSeconds
+    : 0
+
   return {
     phase: state.phase,
     displaySeconds,
     isRunning: state.isRunning,
     sessionsCompleted: state.sessionsCompleted,
     isCountUp: config.isCountUp,
+    progress,
     start,
     pause,
     reset,

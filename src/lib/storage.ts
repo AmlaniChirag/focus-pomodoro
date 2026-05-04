@@ -9,6 +9,7 @@ interface StoredSettings {
   sound: string
   customSoundUrl?: string
   soundFavorites?: SoundFavorite[]
+  autoStartBreak?: boolean
 }
 
 export function loadSettings(): StoredSettings {
@@ -45,6 +46,16 @@ export function loadTheme(): 'dark' | 'light' {
 
 export function saveTheme(theme: 'dark' | 'light'): void {
   localStorage.setItem(THEME_KEY, theme)
+}
+
+export function loadAutoStartBreak(): boolean {
+  return loadSettings().autoStartBreak ?? false
+}
+
+export function saveAutoStartBreak(val: boolean): void {
+  const s = loadSettings()
+  s.autoStartBreak = val
+  saveSettings(s)
 }
 
 export function loadFavorites(): SoundFavorite[] {
