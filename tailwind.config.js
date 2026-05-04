@@ -4,6 +4,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      animation: {
+        'spin-slow': 'spin 8s linear infinite',
+      },
       colors: {
         surface: {
           50: '#f8fafc',

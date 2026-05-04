@@ -3,10 +3,12 @@ import { FocusMethod, AmbientSound } from './lib/types'
 import {
   getMethodConfig, loadSettings, saveSettings,
   loadTheme, saveTheme, loadFavorites,
+  loadAutoStartBreak, saveAutoStartBreak,
 } from './lib/storage'
 import { useTimer } from './hooks/useTimer'
 import { useStats } from './hooks/useStats'
 import { useAuth } from './hooks/useAuth'
+import { useWakeLock } from './hooks/useWakeLock'
 import Timer from './components/Timer'
 import MethodSwitcher from './components/MethodSwitcher'
 import SoundPicker from './components/SoundPicker'
@@ -21,6 +23,7 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(loadTheme)
   const [toast, setToast] = useState<string | null>(null)
   const [, forceUpdate] = useState(0)
+  const [autoStartBreak, setAutoStartBreak] = useState(loadAutoStartBreak)
 
   const { user, loading: authLoading, sendMagicLink, signOut } = useAuth()
 
@@ -48,8 +51,12 @@ export default function App() {
 
   const {
     phase, displaySeconds, isRunning, isCountUp,
+    progress, sessionsCompleted,
     start, pause, reset, stopFlowtime,
-  } = useTimer(method, handleSessionComplete)
+  } = useTimer(method, handleSessionComplete, autoStartBreak)
+
+  // Keep screen awake during focus
+  useWakeLock(isRunning && phase === 'focus')
 
   useEffect(() => { fetchStats() }, [fetchStats])
   useEffect(() => { fetchStats() }, [user?.id, fetchStats])
@@ -86,6 +93,13 @@ export default function App() {
     saveSettings(curr)
   }
 
+  const handleAutoStartBreakToggle = () => {
+    const next = !autoStartBreak
+    setAutoStartBreak(next)
+    saveAutoStartBreak(next)
+  }
+
+  const config = getMethodConfig(method)
   const soundPlaying = isRunning && phase === 'focus'
 
   return (
@@ -117,6 +131,8 @@ export default function App() {
             phase={phase}
             isRunning={isRunning}
             isCountUp={isCountUp}
+            progress={progress}
+            sessionsCompleted={sessionsCompleted}
           />
 
           <div className="flex items-center gap-3">
@@ -147,6 +163,26 @@ export default function App() {
 
         <div className="w-full card space-y-4">
           <DurationInputs method={method} onUpdate={() => forceUpdate(n => n + 1)} />
+
+          {/* Auto-start break toggle — only for methods with breaks */}
+          {config.hasBreak && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-surface-200/50">Auto-start break</span>
+              <button
+                onClick={handleAutoStartBreakToggle}
+                role="switch"
+                aria-checked={autoStartBreak}
+                className={`relative w-8 h-4 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent-400/50 ${
+                  autoStartBreak ? 'bg-accent-500' : 'bg-gray-300 dark:bg-surface-700'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
+                  autoStartBreak ? 'translate-x-4' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+          )}
+
           <div className="border-t border-gray-200 dark:border-white/5 pt-4">
             <SoundPicker
               sound={sound}
