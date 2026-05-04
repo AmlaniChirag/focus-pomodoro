@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FocusMethod, AmbientSound } from './lib/types'
-import { getMethodConfig, loadSettings, saveSettings, loadTheme, saveTheme } from './lib/storage'
+import {
+  getMethodConfig, loadSettings, saveSettings,
+  loadTheme, saveTheme, loadFavorites,
+} from './lib/storage'
 import { useTimer } from './hooks/useTimer'
 import { useStats } from './hooks/useStats'
+import { useAuth } from './hooks/useAuth'
 import Timer from './components/Timer'
 import MethodSwitcher from './components/MethodSwitcher'
 import SoundPicker from './components/SoundPicker'
@@ -10,6 +14,7 @@ import StatsPanel from './components/StatsPanel'
 import ThemeToggle from './components/ThemeToggle'
 import DurationInputs from './components/DurationInputs'
 import Toast from './components/Toast'
+import AuthButton from './components/AuthButton'
 
 export default function App() {
   const [method, setMethod] = useState<FocusMethod>('pomodoro')
@@ -17,12 +22,15 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [, forceUpdate] = useState(0)
 
+  const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth()
+
   const settings = loadSettings()
   const [sound, setSound] = useState<AmbientSound>(settings.sound as AmbientSound || 'none')
   const [volume, setVolume] = useState(settings.volume ?? 0.5)
   const [customSoundUrl, setCustomSoundUrl] = useState(settings.customSoundUrl ?? '')
+  const [favorites, setFavorites] = useState(loadFavorites)
 
-  const { stats, loading: statsLoading, fetchStats, saveSession } = useStats()
+  const { stats, loading: statsLoading, fetchStats, saveSession } = useStats(user?.id)
 
   const handleSessionComplete = useCallback(async (actualSeconds: number) => {
     const config = getMethodConfig(method)
@@ -32,24 +40,17 @@ export default function App() {
     if (err) {
       setToast(`Could not save session: ${err}`)
     } else {
-      setToast('Session saved!')
+      setToast('✓ Session saved!')
     }
   }, [method, saveSession])
 
   const {
-    phase,
-    displaySeconds,
-    isRunning,
-    isCountUp,
-    start,
-    pause,
-    reset,
-    stopFlowtime,
+    phase, displaySeconds, isRunning, isCountUp,
+    start, pause, reset, stopFlowtime,
   } = useTimer(method, handleSessionComplete)
 
-  useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
+  useEffect(() => { fetchStats() }, [fetchStats])
+  useEffect(() => { fetchStats() }, [user?.id, fetchStats])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -88,7 +89,15 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative
       bg-surface-50 text-surface-900 dark:bg-surface-950 dark:text-white transition-colors duration-300">
-      <div className="absolute top-4 right-4">
+
+      {/* Top bar */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <AuthButton
+          user={user}
+          loading={authLoading}
+          onSignIn={signInWithGoogle}
+          onSignOut={signOut}
+        />
         <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
       </div>
 
@@ -141,10 +150,12 @@ export default function App() {
               sound={sound}
               volume={volume}
               customUrl={customSoundUrl}
+              favorites={favorites}
               isFocusRunning={soundPlaying}
               onSoundChange={handleSoundChange}
               onVolumeChange={handleVolumeChange}
               onCustomUrlChange={handleCustomUrlChange}
+              onFavoritesChange={() => setFavorites(loadFavorites())}
             />
           </div>
         </div>
