@@ -1,4 +1,4 @@
-import { FocusMethod, MethodConfig, DEFAULT_CONFIGS } from './types'
+import { FocusMethod, MethodConfig, DEFAULT_CONFIGS, SoundFavorite } from './types'
 
 const STORAGE_KEY = 'flowdesk-settings'
 const THEME_KEY = 'flowdesk-theme'
@@ -8,6 +8,7 @@ interface StoredSettings {
   volume: number
   sound: string
   customSoundUrl?: string
+  soundFavorites?: SoundFavorite[]
 }
 
 export function loadSettings(): StoredSettings {
@@ -44,4 +45,20 @@ export function loadTheme(): 'dark' | 'light' {
 
 export function saveTheme(theme: 'dark' | 'light'): void {
   localStorage.setItem(THEME_KEY, theme)
+}
+
+export function loadFavorites(): SoundFavorite[] {
+  return loadSettings().soundFavorites ?? []
+}
+
+export function saveFavorite(fav: SoundFavorite): void {
+  const s = loadSettings()
+  s.soundFavorites = [...(s.soundFavorites ?? []).filter(f => f.id !== fav.id), fav]
+  saveSettings(s)
+}
+
+export function deleteFavorite(id: string): void {
+  const s = loadSettings()
+  s.soundFavorites = (s.soundFavorites ?? []).filter(f => f.id !== id)
+  saveSettings(s)
 }
