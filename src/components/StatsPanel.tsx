@@ -1,11 +1,35 @@
+import { useState } from 'react'
 import { Stats } from '../lib/types'
+import type { SessionRow } from '../hooks/useStats'
+
+const METHOD_LABELS: Record<string, string> = {
+  pomodoro: 'Pomodoro',
+  deepwork: 'Deep Work',
+  '5217': '52/17',
+  flowtime: 'Flowtime',
+}
 
 interface StatsPanelProps {
   stats: Stats
+  sessions: SessionRow[]
   loading: boolean
+  onClear: () => Promise<string | null>
 }
 
-export default function StatsPanel({ stats, loading }: StatsPanelProps) {
+export default function StatsPanel({ stats, sessions, loading, onClear }: StatsPanelProps) {
+  const [showHistory, setShowHistory] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [clearing, setClearing] = useState(false)
+
+  const handleClear = async () => {
+    if (!confirming) { setConfirming(true); return }
+    setClearing(true)
+    await onClear()
+    setClearing(false)
+    setConfirming(false)
+    setShowHistory(false)
+  }
+
   if (loading) {
     return (
       <div className="card animate-pulse">
@@ -14,7 +38,7 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
     )
   }
 
-  const hasData = stats.todaySessions > 0 || stats.sevenDayChart.some(d => d.minutes > 0)
+  const hasData = sessions.length > 0 || stats.todaySessions > 0 || stats.sevenDayChart.some(d => d.minutes > 0)
   const maxMinutes = Math.max(...stats.sevenDayChart.map(d => d.minutes), 1)
 
   return (
@@ -60,6 +84,64 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
               )
             })}
           </div>
+
+          {/* Controls row */}
+          <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-white/5">
+            <button
+              onClick={() => setShowHistory(v => !v)}
+              className="text-xs text-gray-400 dark:text-surface-200/40 hover:text-gray-600 dark:hover:text-surface-200/70 transition-colors"
+            >
+              {showHistory ? '▲ Hide history' : `▼ History (${sessions.length})`}
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={clearing}
+              className={`text-xs transition-colors ${
+                confirming
+                  ? 'text-red-500 dark:text-red-400 font-medium'
+                  : 'text-gray-300 dark:text-surface-200/20 hover:text-red-400 dark:hover:text-red-400'
+              }`}
+            >
+              {clearing ? 'Clearing…' : confirming ? 'Confirm clear all?' : 'Clear data'}
+            </button>
+          </div>
+
+          {confirming && !clearing && (
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-xs text-gray-400 dark:text-surface-200/30 hover:text-gray-600 text-center"
+            >
+              Cancel
+            </button>
+          )}
+
+          {/* Session history */}
+          {showHistory && sessions.length > 0 && (
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+              {sessions.map(s => {
+                const date = new Date(s.completedAt)
+                const timeStr = date.toLocaleString('en', {
+                  month: 'short', day: 'numeric',
+                  hour: 'numeric', minute: '2-digit',
+                })
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between px-2 py-1.5 rounded-lg
+                      bg-gray-50 dark:bg-surface-700/30 text-xs"
+                  >
+                    <span className="text-gray-600 dark:text-surface-200/60">
+                      {METHOD_LABELS[s.method] ?? s.method}
+                    </span>
+                    <span className="text-gray-400 dark:text-surface-200/40">{timeStr}</span>
+                    <span className="font-medium text-gray-700 dark:text-surface-200/80 tabular-nums">
+                      {s.actualDuration > 0 ? `${s.actualDuration}m` : '<1m'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
