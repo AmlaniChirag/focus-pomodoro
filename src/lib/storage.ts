@@ -7,6 +7,7 @@ interface StoredSettings {
   overrides: Partial<Record<FocusMethod, { focusMinutes?: number; breakMinutes?: number }>>
   volume: number
   sound: string
+  customSoundUrl?: string
 }
 
 export function loadSettings(): StoredSettings {
