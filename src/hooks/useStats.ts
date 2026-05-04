@@ -65,7 +65,7 @@ export function useStats(userId?: string | null) {
       setStats({ todaySessions: todaySessions.length, todayMinutes, sevenDayChart, streak })
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load stats')
+      setError(e instanceof Error ? e.message : (e as {message?:string})?.message ?? 'Failed to load stats')
     } finally {
       setLoading(false)
     }
@@ -91,7 +91,7 @@ export function useStats(userId?: string | null) {
       await fetchStats()
       return null
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to save'
+      const msg = e instanceof Error ? e.message : (e as {message?:string})?.message ?? 'Failed to save'
       setError(msg)
       return msg
     }
