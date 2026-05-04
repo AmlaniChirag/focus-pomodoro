@@ -81,6 +81,7 @@ export function useStats(userId?: string | null) {
 
     try {
       const { error: insertError } = await supabase.from('Session').insert({
+        id: crypto.randomUUID(),
         method,
         plannedDuration,
         actualDuration,
