@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Stats } from '../lib/types'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseReady } from '../lib/supabase'
 
 const EMPTY_STATS: Stats = {
   todaySessions: 0,
@@ -15,6 +15,11 @@ export function useStats(userId?: string | null) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchStats = useCallback(async () => {
+    // Need both Supabase configured and a signed-in user for cloud stats
+    if (!supabaseReady || !userId) {
+      setLoading(false)
+      return
+    }
     try {
       const now = new Date()
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -22,10 +27,12 @@ export function useStats(userId?: string | null) {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
       sevenDaysAgo.setHours(0, 0, 0, 0)
 
-      let query = supabase.from('Session').select('*').gte('completedAt', sevenDaysAgo.toISOString())
-      if (userId) query = query.eq('userId', userId)
+      const { data, error: fetchError } = await supabase
+        .from('Session')
+        .select('*')
+        .eq('userId', userId)
+        .gte('completedAt', sevenDaysAgo.toISOString())
 
-      const { data, error: fetchError } = await query
       if (fetchError) throw fetchError
 
       const sessions = data ?? []
@@ -69,13 +76,16 @@ export function useStats(userId?: string | null) {
     plannedDuration: number,
     actualDuration: number,
   ): Promise<string | null> => {
+    // Skip silently if not signed in or Supabase not configured
+    if (!supabaseReady || !userId) return null
+
     try {
       const { error: insertError } = await supabase.from('Session').insert({
         method,
         plannedDuration,
         actualDuration,
         completedAt: new Date().toISOString(),
-        userId: userId ?? null,
+        userId,
       })
       if (insertError) throw insertError
       await fetchStats()

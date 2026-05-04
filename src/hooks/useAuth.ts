@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseReady } from '../lib/supabase'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!supabaseReady) { setLoading(false); return }
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
@@ -18,6 +19,7 @@ export function useAuth() {
   }, [])
 
   const sendMagicLink = async (email: string) => {
+    if (!supabaseReady) return 'Supabase not configured'
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
