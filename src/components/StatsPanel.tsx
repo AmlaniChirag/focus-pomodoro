@@ -14,12 +14,14 @@ interface StatsPanelProps {
   sessions: SessionRow[]
   loading: boolean
   onClear: () => Promise<string | null>
+  onDeleteSession: (id: string) => Promise<string | null>
 }
 
-export default function StatsPanel({ stats, sessions, loading, onClear }: StatsPanelProps) {
+export default function StatsPanel({ stats, sessions, loading, onClear, onDeleteSession }: StatsPanelProps) {
   const [showHistory, setShowHistory] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleClear = async () => {
     if (!confirming) { setConfirming(true); return }
@@ -128,15 +130,28 @@ export default function StatsPanel({ stats, sessions, loading, onClear }: StatsP
                   <div
                     key={s.id}
                     className="flex items-center justify-between px-2 py-1.5 rounded-lg
-                      bg-gray-50 dark:bg-surface-700/30 text-xs"
+                      bg-gray-50 dark:bg-surface-700/30 text-xs gap-2"
                   >
-                    <span className="text-gray-600 dark:text-surface-200/60">
+                    <span className="text-gray-600 dark:text-surface-200/60 w-20 shrink-0">
                       {METHOD_LABELS[s.method] ?? s.method}
                     </span>
-                    <span className="text-gray-400 dark:text-surface-200/40">{timeStr}</span>
-                    <span className="font-medium text-gray-700 dark:text-surface-200/80 tabular-nums">
+                    <span className="text-gray-400 dark:text-surface-200/40 flex-1">{timeStr}</span>
+                    <span className="font-medium text-gray-700 dark:text-surface-200/80 tabular-nums w-8 text-right">
                       {s.actualDuration > 0 ? `${s.actualDuration}m` : '<1m'}
                     </span>
+                    <button
+                      onClick={async () => {
+                        setDeletingId(s.id)
+                        await onDeleteSession(s.id)
+                        setDeletingId(null)
+                      }}
+                      disabled={deletingId === s.id}
+                      className="text-gray-300 dark:text-surface-200/20 hover:text-red-400 dark:hover:text-red-400
+                        transition-colors ml-1 disabled:opacity-40"
+                      aria-label="Delete session"
+                    >
+                      {deletingId === s.id ? '…' : '×'}
+                    </button>
                   </div>
                 )
               })}

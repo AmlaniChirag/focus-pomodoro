@@ -30,7 +30,7 @@ export default function App() {
   const [customSoundUrl, setCustomSoundUrl] = useState(settings.customSoundUrl ?? '')
   const [favorites, setFavorites] = useState(loadFavorites)
 
-  const { stats, sessions, loading: statsLoading, fetchStats, saveSession, clearSessions } = useStats(user?.id)
+  const { stats, sessions, loading: statsLoading, fetchStats, saveSession, deleteSession, clearSessions } = useStats(user?.id)
 
   const handleSessionComplete = useCallback(async (actualSeconds: number) => {
     const config = getMethodConfig(method)
@@ -167,6 +167,11 @@ export default function App() {
             stats={stats}
             sessions={sessions}
             loading={statsLoading}
+            onDeleteSession={async (id) => {
+              const err = await deleteSession(id)
+              if (err) setToast(`Could not delete: ${err}`)
+              return err
+            }}
             onClear={async () => {
               const err = await clearSessions()
               if (err) setToast(`Could not clear: ${err}`)

@@ -113,6 +113,23 @@ export function useStats(userId?: string | null) {
     }
   }, [userId, fetchStats])
 
+  const deleteSession = useCallback(async (id: string): Promise<string | null> => {
+    if (!supabaseReady || !userId) return null
+    try {
+      const { error: delError } = await supabase
+        .from('Session')
+        .delete()
+        .eq('id', id)
+        .eq('userId', userId)
+      if (delError) throw delError
+      setSessions(prev => prev.filter(s => s.id !== id))
+      await fetchStats()
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : (e as {message?:string})?.message ?? 'Failed to delete'
+    }
+  }, [userId, fetchStats])
+
   const clearSessions = useCallback(async (): Promise<string | null> => {
     if (!supabaseReady || !userId) return null
     try {
@@ -130,5 +147,5 @@ export function useStats(userId?: string | null) {
     }
   }, [userId])
 
-  return { stats, sessions, loading, error, fetchStats, saveSession, clearSessions }
+  return { stats, sessions, loading, error, fetchStats, saveSession, deleteSession, clearSessions }
 }
