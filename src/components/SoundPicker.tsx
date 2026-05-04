@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { AmbientSound } from '../lib/types'
+import { useAmbientAudio } from '../hooks/useAmbientAudio'
 
 const SOUNDS: { id: AmbientSound; label: string }[] = [
   { id: 'none', label: 'None' },
@@ -9,17 +9,11 @@ const SOUNDS: { id: AmbientSound; label: string }[] = [
   { id: 'forest', label: 'Forest' },
 ]
 
-const SOUND_URLS: Record<Exclude<AmbientSound, 'none'>, string> = {
-  whitenoise: 'https://cdn.freesound.org/previews/612/612737_5674468-lq.mp3',
-  rain: 'https://cdn.freesound.org/previews/531/531947_6178507-lq.mp3',
-  lofi: 'https://cdn.freesound.org/previews/456/456058_9224052-lq.mp3',
-  forest: 'https://cdn.freesound.org/previews/365/365167_6593068-lq.mp3',
-}
-
 interface SoundPickerProps {
   sound: AmbientSound
   volume: number
-  isPlaying: boolean
+  /** true when focus timer is actively running */
+  isFocusRunning: boolean
   onSoundChange: (s: AmbientSound) => void
   onVolumeChange: (v: number) => void
 }
@@ -27,44 +21,13 @@ interface SoundPickerProps {
 export default function SoundPicker({
   sound,
   volume,
-  isPlaying,
+  isFocusRunning,
   onSoundChange,
   onVolumeChange,
 }: SoundPickerProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    if (sound === 'none' || !isPlaying) {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      return
-    }
-
-    const url = SOUND_URLS[sound]
-    if (!audioRef.current || audioRef.current.src !== url) {
-      audioRef.current?.pause()
-      const audio = new Audio(url)
-      audio.loop = true
-      audio.volume = volume
-      audio.play().catch(() => {})
-      audioRef.current = audio
-    } else {
-      audioRef.current.volume = volume
-      audioRef.current.play().catch(() => {})
-    }
-
-    return () => {
-      audioRef.current?.pause()
-    }
-  }, [sound, isPlaying, volume])
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [volume])
+  // Play sound: during active focus, OR when a sound is selected while idle (preview)
+  const isPlaying = sound !== 'none' && isFocusRunning
+  useAmbientAudio(sound, volume, isPlaying)
 
   return (
     <div className="flex flex-col gap-3">
@@ -105,6 +68,11 @@ export default function SoundPicker({
             className="flex-1 h-1 accent-accent-500 cursor-pointer"
             aria-label="Volume"
           />
+          {!isFocusRunning && (
+            <span className="text-[10px] text-gray-400 dark:text-surface-200/40 whitespace-nowrap">
+              plays during focus
+            </span>
+          )}
         </div>
       )}
     </div>

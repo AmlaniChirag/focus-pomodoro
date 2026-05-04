@@ -58,6 +58,7 @@ export function useTimer(method: FocusMethod, onComplete: (actualSeconds: number
           isRunning: true,
           sessionsCompleted: newSessions,
         })
+        rafRef.current = requestAnimationFrame(tick)
         sendNotification('Focus complete! Time for a break.')
       } else {
         sessionsRef.current += 1

@@ -132,7 +132,7 @@ export default function App() {
             <SoundPicker
               sound={sound}
               volume={volume}
-              isPlaying={soundPlaying}
+              isFocusRunning={soundPlaying}
               onSoundChange={handleSoundChange}
               onVolumeChange={handleVolumeChange}
             />
