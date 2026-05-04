@@ -17,13 +17,15 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
+  const sendMagicLink = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
     })
+    return error?.message ?? null
+  }
 
   const signOut = () => supabase.auth.signOut()
 
-  return { user, loading, signInWithGoogle, signOut }
+  return { user, loading, sendMagicLink, signOut }
 }
