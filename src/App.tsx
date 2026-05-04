@@ -20,6 +20,7 @@ export default function App() {
   const settings = loadSettings()
   const [sound, setSound] = useState<AmbientSound>(settings.sound as AmbientSound || 'none')
   const [volume, setVolume] = useState(settings.volume ?? 0.5)
+  const [customSoundUrl, setCustomSoundUrl] = useState(settings.customSoundUrl ?? '')
 
   const { stats, loading: statsLoading, fetchStats, saveSession } = useStats()
 
@@ -72,6 +73,13 @@ export default function App() {
     setVolume(v)
     const curr = loadSettings()
     curr.volume = v
+    saveSettings(curr)
+  }
+
+  const handleCustomUrlChange = (url: string) => {
+    setCustomSoundUrl(url)
+    const curr = loadSettings()
+    curr.customSoundUrl = url
     saveSettings(curr)
   }
 
@@ -132,9 +140,11 @@ export default function App() {
             <SoundPicker
               sound={sound}
               volume={volume}
+              customUrl={customSoundUrl}
               isFocusRunning={soundPlaying}
               onSoundChange={handleSoundChange}
               onVolumeChange={handleVolumeChange}
+              onCustomUrlChange={handleCustomUrlChange}
             />
           </div>
         </div>

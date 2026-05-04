@@ -45,7 +45,7 @@ export const DEFAULT_CONFIGS: Record<FocusMethod, MethodConfig> = {
   },
 }
 
-export type AmbientSound = 'none' | 'whitenoise' | 'rain' | 'lofi' | 'forest'
+export type AmbientSound = 'none' | 'whitenoise' | 'rain' | 'lofi' | 'forest' | 'custom'
 
 export interface SessionRecord {
   id: string
