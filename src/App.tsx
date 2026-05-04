@@ -39,10 +39,12 @@ export default function App() {
     const err = await saveSession(method, plannedMinutes, actualMinutes)
     if (err) {
       setToast(`Could not save session: ${err}`)
-    } else {
+    } else if (user) {
       setToast('✓ Session saved!')
+    } else {
+      setToast('Session complete! Sign in to save stats.')
     }
-  }, [method, saveSession])
+  }, [method, saveSession, user])
 
   const {
     phase, displaySeconds, isRunning, isCountUp,
